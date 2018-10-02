@@ -9,22 +9,120 @@ use types::*;
 use util::*;
 type IOResult = ::std::io::Result<()>;
 
-pub fn send_reshape(window_width: i32, window_height: i32, frame_width: i32, frame_height: i32) {}
-pub fn send_ready(root_id: i32) {}
+pub fn send_reshape(window_width: i32, window_height: i32, frame_width: i32, frame_height: i32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_RESHAPE)?;
+        w.write_i32::<NativeEndian>(window_width)?;
+        w.write_i32::<NativeEndian>(window_height)?;
+        w.write_i32::<NativeEndian>(frame_width)?;
+        w.write_i32::<NativeEndian>(frame_height)?;
+        Ok(())
+    });
+}
+pub fn send_ready(root_id: i32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_READY)?;
+        w.write_i32::<NativeEndian>(root_id)?;
+        Ok(())
+    });
+}
 
-pub fn send_puts(string: String) {}
-pub fn send_write(msg: String) {}
-pub fn send_inspect(data: Vec<u8>, length: i32) {}
-pub fn send_cache_miss(key: String) {}
-pub fn send_font_miss(key: String) {}
-pub fn send_key(key: i32, scancode: i32, action: i32, mods: i32) {}
-pub fn send_codepoint(codepoint: u32, mods: i32) {}
-pub fn send_cursor_pos(xpos: f32, ypos: f32) {}
-pub fn send_mouse_button(button: i32, action: i32, mods: i32, xpos: f32, ypos: f32) {}
-pub fn send_scroll(xoffset: f32, yoffset: f32, xpos: f32, ypos: f32) {}
-pub fn send_cursor_enter(entered: i32, xpos: f32, ypos: f32) {}
-pub fn send_close() {}
-pub fn send_draw_ready(id: u32) {}
+fn send_string_cmd(cmd: u32, string: String) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(cmd)?;
+        w.write_all(string.as_bytes())?;
+        Ok(())
+    });
+}
+
+pub fn send_puts(string: String) {
+    send_string_cmd(MSG_OUT_PUTS, string);
+}
+pub fn send_write(msg: String) {
+    send_string_cmd(MSG_OUT_WRITE, msg);
+}
+pub fn send_inspect(data: Vec<u8>, length: i32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_INSPECT)?;
+        w.write_all(data.as_slice())?;
+        Ok(())
+    });
+}
+pub fn send_cache_miss(key: String) {
+    send_string_cmd(MSG_OUT_CACHE_MISS, key);
+}
+pub fn send_font_miss(key: String) {
+    send_string_cmd(MSG_OUT_FONT_MISS, key);
+}
+pub fn send_key(key: i32, scancode: i32, action: i32, mods: i32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_KEY)?;
+        w.write_i32::<NativeEndian>(key)?;
+        w.write_i32::<NativeEndian>(scancode)?;
+        w.write_i32::<NativeEndian>(action)?;
+        w.write_i32::<NativeEndian>(mods)?;
+        Ok(())
+    });
+}
+pub fn send_codepoint(codepoint: u32, mods: i32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_CODEPOINT)?;
+        w.write_u32::<NativeEndian>(codepoint)?;
+        w.write_i32::<NativeEndian>(mods)?;
+        Ok(())
+    });
+}
+pub fn send_cursor_pos(xpos: f32, ypos: f32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_CURSOR_POS)?;
+        w.write_f32::<NativeEndian>(xpos)?;
+        w.write_f32::<NativeEndian>(ypos)?;
+        Ok(())
+    });
+}
+pub fn send_mouse_button(button: i32, action: i32, mods: i32, xpos: f32, ypos: f32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_MOUSE_BUTTON)?;
+        w.write_i32::<NativeEndian>(button)?;
+        w.write_i32::<NativeEndian>(action)?;
+        w.write_i32::<NativeEndian>(mods)?;
+        w.write_f32::<NativeEndian>(xpos)?;
+        w.write_f32::<NativeEndian>(ypos)?;
+        Ok(())
+    });
+}
+pub fn send_scroll(xoffset: f32, yoffset: f32, xpos: f32, ypos: f32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_MOUSE_SCROLL)?;
+        w.write_f32::<NativeEndian>(xoffset)?;
+        w.write_f32::<NativeEndian>(yoffset)?;
+        w.write_f32::<NativeEndian>(xpos)?;
+        w.write_f32::<NativeEndian>(ypos)?;
+        Ok(())
+    });
+}
+pub fn send_cursor_enter(entered: i32, xpos: f32, ypos: f32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_CURSOR_ENTER)?;
+        w.write_i32::<NativeEndian>(entered)?;
+        w.write_f32::<NativeEndian>(xpos)?;
+        w.write_f32::<NativeEndian>(ypos)?;
+        Ok(())
+    });
+}
+pub fn send_close() {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_CLOSE)?;
+        Ok(())
+    });
+}
+pub fn send_draw_ready(id: u32) {
+    write_cmd(|w| {
+        w.write_u32::<NativeEndian>(MSG_OUT_DRAW_READY)?;
+        w.write_u32::<NativeEndian>(id)?;
+        Ok(())
+    });
+}
 
 pub fn write_cmd<F>(fun: F)
 where
