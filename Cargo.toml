@@ -1,0 +1,17 @@
+[package]
+name = "scenic_driver_glfw_rust"
+version = "0.1.0"
+authors = ["root"]
+
+[dependencies]
+gl = "0.6.0"
+byteorder = "1"
+#lazy_static = "1.0"
+
+[dependencies.nanovg]
+version = "1.0.2"
+features = ["gl3"]
+
+[dependencies.glfw]
+git = "https://github.com/bjz/glfw-rs.git"
+
