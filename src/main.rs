@@ -2,14 +2,15 @@ extern crate byteorder;
 extern crate gl;
 extern crate glfw;
 extern crate nanovg;
+extern crate nanovg_sys;
 
 #[macro_use]
 mod util;
+mod comms;
 mod defines;
 mod event;
 mod script;
 mod types;
-mod comms;
 
 use comms::*;
 use event::*;
@@ -101,7 +102,8 @@ fn set_window_hints(glfw: &mut Glfw, resizable: &String) {
     glfw.window_hint(WindowHint::ContextVersionMinor(0));
 }
 
-fn cleanup_window(window_data: WindowData) {}
+//auto free in rust
+fn cleanup_window(_window_data: WindowData) {}
 
 fn is_caller_down() -> bool {
     false

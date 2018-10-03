@@ -39,8 +39,8 @@ impl WindowData {
     pub fn put_script(&mut self, id: u32, script: Script) {
         self.scripts.insert(id, script);
     }
-    pub fn get_script(&self, id: u32) -> Option<&Script> {
-        self.scripts.get(&id)
+    pub fn get_script(&self, id: u32) -> Option<Script> {
+        self.scripts.get(&id).map(|x|x.clone())
     }
     pub fn delete_script(&mut self, id: u32) {
         self.scripts.remove(&id);

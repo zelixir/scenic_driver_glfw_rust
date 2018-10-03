@@ -44,9 +44,11 @@ fn send_string_cmd(cmd: u32, string: String) {
 pub fn send_puts(string: String) {
     send_string_cmd(MSG_OUT_PUTS, string);
 }
+#[allow(unused)]
 pub fn send_write(msg: String) {
     send_string_cmd(MSG_OUT_WRITE, msg);
 }
+#[allow(unused)]
 pub fn send_inspect(data: Vec<u8>, length: i32) {
     write_cmd(|w| {
         w.write_u32::<NativeEndian>(MSG_OUT_INSPECT)?;
@@ -272,19 +274,19 @@ fn receive_query_stats(_glfw: &mut Glfw, window_data: &mut WindowData) {
         y,
         width,
         height,
-        window_data.window.is_focused() as u32,
-        window_data.window.is_resizable() as u32,
-        window_data.window.is_iconified() as u32,
-        window_data.window.is_maximized() as u32,
-        window_data.window.is_visible() as u32
+        window_data.window.is_focused(),
+        window_data.window.is_resizable(),
+        window_data.window.is_iconified(),
+        window_data.window.is_maximized(),
+        window_data.window.is_visible()
     )
 }
 fn receive_reshape(_glfw: &mut Glfw, read: &mut impl Read, window_data: &mut WindowData) {
-    let (w,h) = read_multi!(read, i32,i32).unwrap();
+    let (w, h) = read_multi!(read, i32, i32).unwrap();
     window_data.window.set_size(w, h);
 }
 fn receive_position(_glfw: &mut Glfw, read: &mut impl Read, window_data: &mut WindowData) {
-    let (x,y) = read_multi!(read, i32,i32).unwrap();
+    let (x, y) = read_multi!(read, i32, i32).unwrap();
     window_data.window.set_pos(x, y);
 }
 // fn receive_new_dl_id(_glfw:&mut  Glfw,window_data: &mut WindowData) {}
@@ -296,14 +298,9 @@ fn receive_load_font_file(
     _window_data: &mut WindowData,
     ctx: &mut Context,
 ) {
-    let name_len = read.read_u32::<NativeEndian>().unwrap();
-    let path_len = read.read_u32::<NativeEndian>().unwrap();
-    let mut name = String::with_capacity(name_len as usize);
-    let mut path = String::with_capacity(path_len as usize);
-    unsafe {
-        read.read_exact(name.as_mut_vec().as_mut_slice()).unwrap();
-        read.read_exact(path.as_mut_vec().as_mut_slice()).unwrap();
-    }
+    let (name_len, path_len) = read_multi!(read, usize, usize).unwrap();
+    let name = read_string(read, name_len);
+    let path = read_string(read, path_len);
     if ::nanovg::Font::find(ctx.ctx, &name).is_err() {
         ::nanovg::Font::from_file(ctx.ctx, &name, &path).unwrap();
     }
@@ -314,15 +311,10 @@ fn receive_load_font_blob(
     _window_data: &mut WindowData,
     ctx: &mut Context,
 ) {
-    let name_len = read.read_u32::<NativeEndian>().unwrap();
-    let data_len = read.read_u32::<NativeEndian>().unwrap();
-    let mut name = String::with_capacity(name_len as usize);
-    let mut data = Vec::with_capacity(data_len as usize);
+    let (name_len, data_len) = read_multi!(read, usize, usize).unwrap();
+    let name = read_string(read, name_len);
+    let data = read_bytes(read, data_len);
 
-    unsafe {
-        read.read_exact(name.as_mut_vec().as_mut_slice()).unwrap();
-    }
-    read.read_exact(data.as_mut_slice()).unwrap();
     if ::nanovg::Font::find(ctx.ctx, &name).is_err() {
         ::nanovg::Font::from_memory(ctx.ctx, &name, &data).unwrap();
     }
@@ -336,15 +328,9 @@ fn receive_put_tx_blob<'ctx: 'tx, 'tx>(
     _window_data: &mut WindowData,
     ctx: &mut Context<'ctx, 'tx>,
 ) {
-    let name_len = read.read_u32::<NativeEndian>().unwrap();
-    let data_len = read.read_u32::<NativeEndian>().unwrap();
-    let mut name = String::with_capacity(name_len as usize);
-    let mut data = Vec::with_capacity(data_len as usize);
-
-    unsafe {
-        read.read_exact(name.as_mut_vec().as_mut_slice()).unwrap();
-    }
-    read.read_exact(data.as_mut_slice()).unwrap();
+    let (name_len, data_len) = read_multi!(read, usize, usize).unwrap();
+    let name = read_string(read, name_len);
+    let data = read_bytes(read, data_len);
     ctx.put_tx(name, data);
 }
 fn receive_free_tx_id(
@@ -353,13 +339,8 @@ fn receive_free_tx_id(
     _window_data: &mut WindowData,
     ctx: &mut Context,
 ) {
-    let name_len = read.read_u32::<NativeEndian>().unwrap();
-    let mut name = String::with_capacity(name_len as usize);
-
-    unsafe {
-        read.read_exact(name.as_mut_vec().as_mut_slice()).unwrap();
-    }
-
+    let len = read_multi!(read, usize).unwrap();
+    let name = read_string(read, len);
     ctx.free_tx(name);
 }
 // fn receive_put_font_atlas(_glfw:&mut  Glfw,window_data: &mut WindowData) {}

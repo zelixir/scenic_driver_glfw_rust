@@ -200,6 +200,7 @@ dependencies = [
  "gl 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "glfw 0.25.0 (git+https://github.com/bjz/glfw-rs.git)",
  "nanovg 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nanovg-sys 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
