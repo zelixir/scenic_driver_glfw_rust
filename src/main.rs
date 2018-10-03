@@ -3,12 +3,14 @@ extern crate gl;
 extern crate glfw;
 extern crate nanovg;
 
-mod comms;
+#[macro_use]
+mod util;
 mod defines;
 mod event;
 mod script;
 mod types;
-mod util;
+mod comms;
+
 use comms::*;
 use event::*;
 use glfw::{Context, Glfw, WindowHint, WindowMode};
@@ -17,7 +19,6 @@ use types::*;
 
 fn main() {
     let args: Vec<String> = ::std::env::args().collect();
-
     if args.len() != 6 {
         print!(
             "\r\nscenic_driver_glfw should be launched via the Scenic.Driver.Glfw library.\r\n\r\n"
@@ -65,11 +66,19 @@ fn main() {
             unsafe {
                 ::gl::Clear(::gl::COLOR_BUFFER_BIT);
             }
+            let root_script = window_data.root_script;
             ctx.frame(
                 window_data.get_window_size_float(),
                 window_data.get_ratio().0,
                 |mut frame| {
-                    run_scripts(&mut window_data, &mut frame);
+                    if root_script > 0 {
+                        run_scripts(
+                            &mut window_data,
+                            root_script as u32,
+                            &mut context,
+                            &mut frame,
+                        );
+                    }
                 },
             );
             window_data.window.swap_buffers();

@@ -7,24 +7,30 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::{Duration, Instant};
 use types::*;
 use util::*;
+
 type IOResult = ::std::io::Result<()>;
 
+macro_rules! write_cmd_helper {
+    ($($datas:expr),*) => {
+        write_cmd(|mut w| {
+            write_multi!(w, 
+                $($datas), *
+            )
+        });
+    };
+}
+
 pub fn send_reshape(window_width: i32, window_height: i32, frame_width: i32, frame_height: i32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_RESHAPE)?;
-        w.write_i32::<NativeEndian>(window_width)?;
-        w.write_i32::<NativeEndian>(window_height)?;
-        w.write_i32::<NativeEndian>(frame_width)?;
-        w.write_i32::<NativeEndian>(frame_height)?;
-        Ok(())
-    });
+    write_cmd_helper!(
+        MSG_OUT_RESHAPE,
+        window_width,
+        window_height,
+        frame_width,
+        frame_height
+    );
 }
 pub fn send_ready(root_id: i32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_READY)?;
-        w.write_i32::<NativeEndian>(root_id)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_READY, root_id)
 }
 
 fn send_string_cmd(cmd: u32, string: String) {
@@ -55,73 +61,28 @@ pub fn send_font_miss(key: String) {
     send_string_cmd(MSG_OUT_FONT_MISS, key);
 }
 pub fn send_key(key: i32, scancode: i32, action: i32, mods: i32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_KEY)?;
-        w.write_i32::<NativeEndian>(key)?;
-        w.write_i32::<NativeEndian>(scancode)?;
-        w.write_i32::<NativeEndian>(action)?;
-        w.write_i32::<NativeEndian>(mods)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_KEY, key, scancode, action, mods)
 }
 pub fn send_codepoint(codepoint: u32, mods: i32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_CODEPOINT)?;
-        w.write_u32::<NativeEndian>(codepoint)?;
-        w.write_i32::<NativeEndian>(mods)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_CODEPOINT, codepoint, mods)
 }
 pub fn send_cursor_pos(xpos: f32, ypos: f32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_CURSOR_POS)?;
-        w.write_f32::<NativeEndian>(xpos)?;
-        w.write_f32::<NativeEndian>(ypos)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_CURSOR_POS, xpos, ypos)
 }
 pub fn send_mouse_button(button: i32, action: i32, mods: i32, xpos: f32, ypos: f32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_MOUSE_BUTTON)?;
-        w.write_i32::<NativeEndian>(button)?;
-        w.write_i32::<NativeEndian>(action)?;
-        w.write_i32::<NativeEndian>(mods)?;
-        w.write_f32::<NativeEndian>(xpos)?;
-        w.write_f32::<NativeEndian>(ypos)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_MOUSE_BUTTON, button, action, mods, xpos, ypos)
 }
 pub fn send_scroll(xoffset: f32, yoffset: f32, xpos: f32, ypos: f32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_MOUSE_SCROLL)?;
-        w.write_f32::<NativeEndian>(xoffset)?;
-        w.write_f32::<NativeEndian>(yoffset)?;
-        w.write_f32::<NativeEndian>(xpos)?;
-        w.write_f32::<NativeEndian>(ypos)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_MOUSE_SCROLL, xoffset, yoffset, xpos, ypos)
 }
 pub fn send_cursor_enter(entered: i32, xpos: f32, ypos: f32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_CURSOR_ENTER)?;
-        w.write_i32::<NativeEndian>(entered)?;
-        w.write_f32::<NativeEndian>(xpos)?;
-        w.write_f32::<NativeEndian>(ypos)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_CURSOR_ENTER, entered, xpos, ypos)
 }
 pub fn send_close() {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_CLOSE)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_CLOSE)
 }
 pub fn send_draw_ready(id: u32) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_DRAW_READY)?;
-        w.write_u32::<NativeEndian>(id)?;
-        Ok(())
-    });
+    write_cmd_helper!(MSG_OUT_DRAW_READY, id)
 }
 
 pub fn write_cmd<F>(fun: F)
@@ -144,13 +105,13 @@ pub fn handle_stdio_in<'ctx: 'tx, 'tx>(
     let start = Instant::now();
     let timeout = Duration::from_micros(STD_TIMEOUT);
     let mut redraw = false;
-    // while start.elapsed() < timeout {
-    if let Ok(msg) = receiver.try_recv() {
-        redraw = dispatch_message(window_data, msg, glfw, ctx) || redraw;
-    } else {
-
+    while start.elapsed() < timeout {
+        if let Ok(msg) = receiver.try_recv() {
+            redraw = dispatch_message(window_data, msg, glfw, ctx) || redraw;
+        } else {
+            break;
+        }
     }
-    // }
     redraw
 }
 
@@ -302,32 +263,28 @@ fn receive_input(_glfw: &mut Glfw, read: &mut impl Read, window_data: &mut Windo
     window_data.input_flags = flag;
 }
 fn receive_query_stats(_glfw: &mut Glfw, window_data: &mut WindowData) {
-    write_cmd(|w| {
-        w.write_u32::<NativeEndian>(MSG_OUT_STATS)?;
-        w.write_u32::<NativeEndian>(window_data.input_flags)?;
-        let (x, y) = window_data.window.get_pos();
-        w.write_i32::<NativeEndian>(x)?;
-        w.write_i32::<NativeEndian>(y)?;
-        let (width, height) = window_data.window.get_size();
-        w.write_i32::<NativeEndian>(width)?;
-        w.write_i32::<NativeEndian>(height)?;
-
-        w.write_u32::<NativeEndian>(window_data.window.is_focused() as u32)?;
-        w.write_u32::<NativeEndian>(window_data.window.is_resizable() as u32)?;
-        w.write_u32::<NativeEndian>(window_data.window.is_iconified() as u32)?;
-        w.write_u32::<NativeEndian>(window_data.window.is_maximized() as u32)?;
-        w.write_u32::<NativeEndian>(window_data.window.is_visible() as u32)?;
-        Ok(())
-    });
+    let (x, y) = window_data.window.get_pos();
+    let (width, height) = window_data.window.get_size();
+    write_cmd_helper!(
+        MSG_OUT_STATS,
+        window_data.input_flags,
+        x,
+        y,
+        width,
+        height,
+        window_data.window.is_focused() as u32,
+        window_data.window.is_resizable() as u32,
+        window_data.window.is_iconified() as u32,
+        window_data.window.is_maximized() as u32,
+        window_data.window.is_visible() as u32
+    )
 }
 fn receive_reshape(_glfw: &mut Glfw, read: &mut impl Read, window_data: &mut WindowData) {
-    let w = read.read_i32::<NativeEndian>().unwrap();
-    let h = read.read_i32::<NativeEndian>().unwrap();
+    let (w,h) = read_multi!(read, i32,i32).unwrap();
     window_data.window.set_size(w, h);
 }
 fn receive_position(_glfw: &mut Glfw, read: &mut impl Read, window_data: &mut WindowData) {
-    let x = read.read_i32::<NativeEndian>().unwrap();
-    let y = read.read_i32::<NativeEndian>().unwrap();
+    let (x,y) = read_multi!(read, i32,i32).unwrap();
     window_data.window.set_pos(x, y);
 }
 // fn receive_new_dl_id(_glfw:&mut  Glfw,window_data: &mut WindowData) {}

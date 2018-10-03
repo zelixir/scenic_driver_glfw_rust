@@ -1,5 +1,5 @@
 use event::*;
-use glfw::{Glfw, Window};
+use glfw::Window;
 use nanovg::Image;
 use std::collections::HashMap;
 pub type Script = Vec<u8>;
@@ -16,7 +16,7 @@ impl<'ctx: 'tx, 'tx> Context<'ctx, 'tx> {
             .unwrap();
         self.textures.insert(key, img);
     }
-    pub fn free_tx(&mut self, key: String){
+    pub fn free_tx(&mut self, key: String) {
         self.textures.remove(&key);
     }
 }
