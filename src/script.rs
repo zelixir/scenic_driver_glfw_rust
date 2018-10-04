@@ -79,17 +79,19 @@ fn run_script_internal<'frame, 'ctx: 'tx, 'tx: 'e, 'e>(
             OP_STROKE_COLOR => stroke_color(raw_ctx, script),
 
             OP_STROKE_PAINT => {
-                if let Some(paint) = curr_paint {
+                if let Some(paint) = &curr_paint {
                     paint.stroke(ctx.ctx);
                 }
+                next_paint = curr_paint;
             }
 
             OP_FILL_COLOR => fill_color(ctx.ctx, script),
 
             OP_FILL_PAINT => {
-                if let Some(paint) = curr_paint {
+                if let Some(paint) = &curr_paint {
                     paint.fill(ctx.ctx);
                 }
+                next_paint = curr_paint;
             }
 
             OP_MITER_LIMIT => miter_limit(raw_ctx, script),
@@ -203,16 +205,22 @@ fn paint_image<'ctx: 'tx, 'tx: 'e, 'e>(
     ctx: &'e Context<'ctx, 'tx>,
     script: &mut impl ReadBytesExt,
 ) -> Option<Box<Paint + 'e>> {
-    let (ox, oy, ex, ey, angle, alpha, key_size) =
-        read_multi!(script, f32, f32, f32, f32, f32, f32, u32).unwrap();
+    let (ox, oy, mut ex, mut ey, angle, alpha, key_size) =
+        read_multi!(script, f32, f32, f32, f32, f32, u32, u32).unwrap();
     let key = read_string(script, key_size as usize);
+
     if let Some(image) = ctx.textures.get(&key) {
+        if ox == 0.0 && oy == 0.0 && ex == 0.0 && ey == 0.0 {
+            let (w, h) = image.size();
+            ex = w as f32;
+            ey = h as f32;
+        }
         Some(Box::new(ImagePattern {
             image: image,
             origin: (ox, oy),
             size: (ex, ey),
             angle: angle,
-            alpha: alpha,
+            alpha: alpha as f32 / 255.0,
         }))
     } else {
         send_cache_miss(key);

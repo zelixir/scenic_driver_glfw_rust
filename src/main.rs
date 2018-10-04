@@ -16,6 +16,8 @@ use comms::*;
 use event::*;
 use glfw::{Context, Glfw, WindowHint, WindowMode};
 use script::*;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 use types::*;
 use util::*;
 
@@ -57,15 +59,16 @@ fn main() {
 
     let (std_channel_send, mut std_channel_recv) = ::std::sync::mpsc::channel::<Message>();
     start_read_stdin_thread(std_channel_send);
-
+    let draw_interval = Duration::from_micros(1000_000 / 60);
+    let mut last_draw = Instant::now();
     while window_data.keep_going && !is_caller_down() {
-        if window_data.redraw
-            || handle_stdio_in(
-                &mut window_data,
-                &mut glfw,
-                &mut context,
-                &mut std_channel_recv,
-            ) {
+        if (handle_stdio_in(
+            &mut window_data,
+            &mut glfw,
+            &mut context,
+            &mut std_channel_recv,
+        ) || window_data.redraw) && last_draw.elapsed() > draw_interval
+        {
             window_data.redraw = false;
             unsafe {
                 ::gl::Clear(::gl::COLOR_BUFFER_BIT);
@@ -86,13 +89,16 @@ fn main() {
                 },
             );
             window_data.window.swap_buffers();
-        } else {
-            //todo: only sleep if no events, and limit fps
-            ::std::thread::sleep(::std::time::Duration::from_millis(1));
+            last_draw = Instant::now();
         }
         glfw.poll_events();
+        let mut has_event = false;
         for (_, event) in glfw::flush_messages(&events) {
             handle_window_event(&mut window_data, event);
+            has_event = true;
+        }
+        if !has_event {
+            sleep(Duration::from_millis(1));
         }
     }
     cleanup_window(window_data);
