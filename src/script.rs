@@ -16,7 +16,8 @@ pub fn run_scripts<'a, 'ctx: 'tx, 'tx>(
     if let Some(script) = window_data.get_script(script_id) {
         let script = script.clone();
         let mut read = Cursor::new(script);
-        run_script_internal(window_data, &mut read, ctx, frame, None).unwrap();
+        let trace = false;
+        run_script_internal(window_data, &mut read, ctx, frame, None, trace).unwrap();
     }
 }
 
@@ -26,11 +27,17 @@ fn run_script_internal<'frame, 'ctx: 'tx, 'tx: 'e, 'e>(
     ctx: &'e Context<'ctx, 'tx>,
     frame: &mut ::nanovg::Frame<'frame>,
     curr_paint: Option<Box<Paint + 'e>>,
+    trace: bool,
 ) -> ::std::io::Result<()> {
     let mut next_paint: Option<Box<Paint + 'e>> = None;
     {
         let op = read_multi!(script, u32)?;
         let raw_ctx = ctx.ctx.raw();
+
+        if trace {
+            send_puts(format!("script op: {}", op));
+        }
+
         match op {
             // state control
             OP_PUSH_STATE => unsafe {
@@ -47,7 +54,8 @@ fn run_script_internal<'frame, 'ctx: 'tx, 'tx: 'e, 'e>(
 
             // script control
             OP_RUN_SCRIPT => {
-                run_script_internal(window_data, script, ctx, frame, None)?;
+                let script_id = read_multi!(script, u32).unwrap();
+                run_scripts(window_data, script_id, ctx, frame);
             }
 
             // render styles
@@ -154,7 +162,7 @@ fn run_script_internal<'frame, 'ctx: 'tx, 'tx: 'e, 'e>(
             }
         }
     }
-    run_script_internal(window_data, script, ctx, frame, next_paint)
+    run_script_internal(window_data, script, ctx, frame, next_paint, trace)
 }
 fn paint_linear(script: &mut impl ReadBytesExt) -> Option<Box<Paint>> {
     let (sx, sy, ex, ey, sc, ec) = read_multi!(script, f32, f32, f32, f32, Color, Color).unwrap();
@@ -388,8 +396,11 @@ fn text(ctx: *mut NVGcontext, script: &mut impl ReadBytesExt) {
         let rows: *mut NVGtextRow = rows_raw.as_mut_ptr() as *mut NVGtextRow;
         loop {
             let nrows = nvgTextBreakLines(ctx, start, end, 1000f32, rows, 3);
+            if nrows <= 0 {
+                break;
+            }
             for i in 0..nrows {
-                let row = rows.offset(i as isize - 1);
+                let row = rows.offset(i as isize);
                 nvgText(ctx, x, y, (*row).start, (*row).end);
                 y += height;
             }

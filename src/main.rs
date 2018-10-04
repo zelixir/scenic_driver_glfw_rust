@@ -17,6 +17,7 @@ use event::*;
 use glfw::{Context, Glfw, WindowHint, WindowMode};
 use script::*;
 use types::*;
+use util::*;
 
 fn main() {
     let args: Vec<String> = ::std::env::args().collect();
@@ -26,16 +27,15 @@ fn main() {
         );
         return;
     }
-
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     let width = args[1].parse::<i32>().unwrap();
     let height = args[2].parse::<i32>().unwrap();
     // let block_size = args[5].parse::<i32>().unwrap();
     set_window_hints(&mut glfw, &args[4]);
-    let (window, events) =
+    let (mut window, events) =
         glfw.create_window(width as u32, height as u32, &args[3], WindowMode::Windowed)
-            .expect("cannot create window");
+            .expect_or_send("cannot create window");
 
     glfw.make_context_current(Some(&window));
     let ctx = ::nanovg::ContextBuilder::new()
@@ -43,7 +43,10 @@ fn main() {
         .stencil_strokes()
         .debug()
         .build()
-        .expect("Could not init nanovg!!!");
+        .expect_or_send("Could not init nanovg!!!");
+
+    ::gl::load_with(|s| window.get_proc_address(s) as *const _);
+
     let mut context = types::Context {
         ctx: &ctx,
         textures: Default::default(),
@@ -83,6 +86,9 @@ fn main() {
                 },
             );
             window_data.window.swap_buffers();
+        } else {
+            //todo: only sleep if no events, and limit fps
+            ::std::thread::sleep(::std::time::Duration::from_millis(1));
         }
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&events) {

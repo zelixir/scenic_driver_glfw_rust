@@ -23,16 +23,19 @@ pub fn check_gl_error(msg: String) {
         }
     }
 }
-
-pub fn read_string(read: &mut impl Read, len: usize) -> String {
-    let mut re = String::with_capacity(len);
-    unsafe {
-        read.read_exact(re.as_mut_vec().as_mut_slice()).unwrap();
+fn trim_null_tail(mut buf: Vec<u8>) -> Vec<u8> {
+    let mut i = buf.len() - 1;
+    while buf[i] == 0 {
+        i = i - 1;
     }
-    re
+    buf.truncate(i + 1);
+    buf
+}
+pub fn read_string(read: &mut impl Read, len: usize) -> String {
+    String::from_utf8(trim_null_tail(read_bytes(read, len))).unwrap()
 }
 pub fn read_bytes(read: &mut impl Read, len: usize) -> Vec<u8> {
-    let mut re: Vec<u8> = Vec::with_capacity(len);
+    let mut re: Vec<u8> = vec![0u8; len];
     read.read_exact(re.as_mut_slice()).unwrap();
     re
 }
@@ -132,4 +135,22 @@ fn read_write_multi_test() {
     let mut vec: Vec<u8> = vec![];
     write_multi!(vec, 0x04030201i32, 0xff070605u32).expect("write_multi_test failed");
     assert_eq!(vec, vec![1, 2, 3, 4, 5, 6, 7, 0xff]);
+}
+
+pub trait ScenicResult<T> {
+    fn expect_or_send(self, msg: &str) -> T;
+}
+
+impl<T, E: ::std::fmt::Debug> ScenicResult<T> for Result<T, E> {
+    fn expect_or_send(self, msg: &str) -> T {
+        self.map_err(|err| {
+            send_puts(msg.to_string());
+            err
+        }).expect(msg)
+    }
+}
+impl<T> ScenicResult<T> for Option<T> {
+    fn expect_or_send(self, msg: &str) -> T {
+        self.ok_or(()).expect_or_send(msg)
+    }
 }

@@ -95,6 +95,7 @@ where
     fun(&mut buf).unwrap();
     stdout().write_u32::<BigEndian>(buf.len() as u32).unwrap();
     stdout().write_all(buf.as_slice()).unwrap();
+    stdout().flush().unwrap();
 }
 
 const STD_TIMEOUT: u64 = 32000;
@@ -125,9 +126,9 @@ fn dispatch_message<'ctx: 'tx, 'tx>(
 ) -> bool {
     let mut read = Cursor::new(msg);
     let mut render = false;
-    let msg_id = read.read_u32::<BigEndian>().unwrap();
+    let msg_id = read.read_u32::<NativeEndian>().unwrap();
     check_gl_error("starting error: ".to_string());
-
+    // send_puts(format!("dispatch message: {:#X}", msg_id));
     match msg_id {
         CMD_QUIT => {
             receive_quit(glfw, window_data);
@@ -219,7 +220,7 @@ pub fn start_read_stdin_thread(sender: Sender<Message>) {
     ::std::thread::spawn(move || loop {
         let len = read_msg_len() as usize;
         let mut buf = vec![0u8; len];
-        stdin().read(buf.as_mut_slice()).unwrap();
+        stdin().read_exact(buf.as_mut_slice()).unwrap();
         sender.send(buf).unwrap();
     });
 }

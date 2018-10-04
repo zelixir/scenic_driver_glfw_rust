@@ -2,6 +2,7 @@ use event::*;
 use glfw::Window;
 use nanovg::Image;
 use std::collections::HashMap;
+use comms::*;
 pub type Script = Vec<u8>;
 pub type NanoContext = ::nanovg::Context;
 pub struct Context<'ctx: 'tx, 'tx> {
@@ -11,10 +12,11 @@ pub struct Context<'ctx: 'tx, 'tx> {
 
 impl<'ctx: 'tx, 'tx> Context<'ctx, 'tx> {
     pub fn put_tx(&mut self, key: String, data: Vec<u8>) {
-        let img = ::nanovg::Image::new(&self.ctx)
-            .build_from_memory(&data)
-            .unwrap();
-        self.textures.insert(key, img);
+        if let Ok(img) = ::nanovg::Image::new(&self.ctx).build_from_memory(&data) {
+            self.textures.insert(key, img);
+        } else {
+            send_puts(format!("build image failed: {}", key));
+        }
     }
     pub fn free_tx(&mut self, key: String) {
         self.textures.remove(&key);
@@ -40,7 +42,7 @@ impl WindowData {
         self.scripts.insert(id, script);
     }
     pub fn get_script(&self, id: u32) -> Option<Script> {
-        self.scripts.get(&id).map(|x|x.clone())
+        self.scripts.get(&id).map(|x| x.clone())
     }
     pub fn delete_script(&mut self, id: u32) {
         self.scripts.remove(&id);
