@@ -1,11 +1,11 @@
 use byteorder::{NativeEndian, ReadBytesExt};
-use comms::*;
-use defines::*;
+use crate::comms::*;
+use crate::defines::*;
 use nanovg::{Color, Gradient, ImagePattern, Paint};
 use nanovg_sys::*;
 use std::io::Cursor;
-use types::*;
-use util::*;
+use crate::types::*;
+use crate::util::*;
 
 pub fn run_scripts<'a, 'ctx: 'tx, 'tx>(
     window_data: &mut WindowData,

@@ -1,8 +1,8 @@
-use event::*;
+use crate::event::*;
 use glfw::Window;
 use nanovg::Image;
 use std::collections::HashMap;
-use comms::*;
+use crate::comms::*;
 pub type Script = Vec<u8>;
 pub type NanoContext = ::nanovg::Context;
 pub struct Context<'ctx: 'tx, 'tx> {

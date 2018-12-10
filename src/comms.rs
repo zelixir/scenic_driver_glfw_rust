@@ -1,12 +1,12 @@
 use byteorder::{BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
-use defines::*;
+use crate::defines::*;
 use gl::*;
 use glfw::Glfw;
 use std::io::{stdin, stdout, Cursor, Read, Write};
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{Duration, Instant};
-use types::*;
-use util::*;
+use crate::types::*;
+use crate::util::*;
 
 type IOResult = ::std::io::Result<()>;
 

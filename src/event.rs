@@ -1,7 +1,7 @@
-use comms::*;
-use defines::*;
+use crate::comms::*;
+use crate::defines::*;
 use glfw::WindowEvent;
-use types::*;
+use crate::types::*;
 pub fn handle_window_event(window_data: &mut WindowData, event: WindowEvent) {
     match event {
         WindowEvent::FramebufferSize(w, h) => reshape_framebuffer(window_data, w, h),

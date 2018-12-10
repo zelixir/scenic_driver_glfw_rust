@@ -1,9 +1,3 @@
-extern crate byteorder;
-extern crate gl;
-extern crate glfw;
-extern crate nanovg;
-extern crate nanovg_sys;
-
 #[macro_use]
 mod util;
 mod comms;
@@ -12,14 +6,14 @@ mod event;
 mod script;
 mod types;
 
-use comms::*;
-use event::*;
+use crate::comms::*;
+use crate::event::*;
 use glfw::{Context, Glfw, WindowHint, WindowMode};
-use script::*;
+use crate::script::*;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use types::*;
-use util::*;
+use crate::types::*;
+use crate::util::*;
 
 fn main() {
     let args: Vec<String> = ::std::env::args().collect();

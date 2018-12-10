@@ -2,6 +2,7 @@
 name = "scenic_driver_glfw_rust"
 version = "0.1.0"
 authors = ["root"]
+edition = "2018"
 
 [dependencies]
 gl = "0.10.0"

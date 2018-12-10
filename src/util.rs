@@ -1,5 +1,5 @@
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use comms::*;
+use crate::comms::*;
 use gl::*;
 
 use std::io::Read;
@@ -78,7 +78,7 @@ macro_rules! read_type {
 }
 
 pub trait WriteAny {
-    fn write_any(self, &mut impl WriteBytesExt) -> ::std::io::Result<()>;
+    fn write_any(self, _: &mut impl WriteBytesExt) -> ::std::io::Result<()>;
 }
 impl WriteAny for bool {
     fn write_any(self, write: &mut impl WriteBytesExt) -> ::std::io::Result<()> {
@@ -107,7 +107,7 @@ macro_rules! read_multi {
     };
     ($read:ident, $($tyvar:ident),* ) => {
          (Ok(()) as ::std::io::Result<()>).and_then(|_|{
-            Ok( ( $( (try!(read_type!($read, $tyvar))) ),* ) )
+            Ok( ( $( (r#try!(read_type!($read, $tyvar))) ),* ) )
         })
     }
 }
